@@ -16,12 +16,24 @@ struct MoveHubService {
     static let characteristicUuid = CBUUID(string: GATT.characteristicUuid)
 }
 
-protocol HubManagerDelegate: class {
+protocol HubManagerDelegate: AnyObject {
     
     func didConnect(peripheral: CBPeripheral)
     func didFailToConnect(peripheral: CBPeripheral, error: Error?)
     func didDisconnect(peripheral: CBPeripheral, error: Error?)
     func didUpdate(notification: BoostBLEKit.Notification)
+}
+
+class UnknownHub: Hub {
+    
+    let systemTypeAndDeviceNumber: UInt8
+    
+    init(systemTypeAndDeviceNumber: UInt8) {
+        self.systemTypeAndDeviceNumber = systemTypeAndDeviceNumber
+    }
+    
+    var connectedIOs: [PortId: IOType] = [:]
+    let portMap: [BoostBLEKit.Port: PortId] = [:]
 }
 
 class HubManager: NSObject {
@@ -61,7 +73,10 @@ class HubManager: NSObject {
         guard self.peripheral[peripheral.identifier] == nil else { return }
         
         guard let manufacturerData = advertisementData["kCBAdvDataManufacturerData"] as? Data else { return }
-        guard let hubType = HubType(manufacturerData: manufacturerData) else { return }
+        guard manufacturerData.count == 8 else { return }
+        guard manufacturerData[0] == 0x97, manufacturerData[1] == 0x03 else { return }
+        
+        let hubType = HubType(manufacturerData: manufacturerData)
         
         switch hubType {
         case .boost:
@@ -76,10 +91,23 @@ class HubManager: NSObject {
             self.connectedHub[peripheral.identifier] = Duplo.TrainBase()
         case .controlPlus:
             self.connectedHub[peripheral.identifier] = ControlPlus.SmartHub()
+        case .remoteControl:
+            self.connectedHub = PoweredUp.RemoteControl()
+        case .mario:
+            self.connectedHub = SuperMario.Mario()
+        case .luigi:
+            self.connectedHub = SuperMario.Luigi()
+        case .peach:
+            self.connectedHub = SuperMario.Peach()
+        case .spikeEssential:
+            self.connectedHub = Spike.EssentialHub()
+        case .none:
+            let systemTypeAndDeviceNumber = manufacturerData[3]
+            print(String(format: "Unknown Hub (System Type and Device Number: 0x%02x)", systemTypeAndDeviceNumber))
+            self.connectedHub = UnknownHub(systemTypeAndDeviceNumber: systemTypeAndDeviceNumber)
         }
         
-        self.isInitializingHub[peripheral.identifier] = true
-        self.peripheral[peripheral.identifier] = peripheral
+        self.peripheral = peripheral
         centralManager.connect(peripheral, options: nil)
     }
     
@@ -88,6 +116,9 @@ class HubManager: NSObject {
         for uuid in peripheral.keys {
             guard let peripheral = peripheral[uuid] else { continue }
             centralManager.cancelPeripheralConnection(peripheral)
+            self.peripheral = nil
+            self.characteristic = nil
+            self.connectedHub = nil
         }
     }
     
@@ -95,6 +126,12 @@ class HubManager: NSObject {
         if characteristic.properties.contains([.write, .notify]) {
             self.characteristic[peripheral.identifier] = characteristic
             peripheral.setNotifyValue(true, for: characteristic)
+
+            DispatchQueue.main.async { [weak self] in
+                self?.write(data: HubPropertiesCommand(property: .advertisingName, operation: .enableUpdates).data)
+                self?.write(data: HubPropertiesCommand(property: .firmwareVersion, operation: .requestUpdate).data)
+                self?.write(data: HubPropertiesCommand(property: .batteryVoltage, operation: .enableUpdates).data)
+            }
         }
     }
     
@@ -137,9 +174,17 @@ class HubManager: NSObject {
         }
     }
     
+    // func write(uuid: UUID, data: Data) {
+    //     if let peripheral = peripheral[uuid] {
+    //         write(peripheral: peripheral, data: data)
+    // }
+    
     func write(uuid: UUID, data: Data) {
-        if let peripheral = peripheral[uuid] {
-            write(peripheral: peripheral, data: data)
+        print("->", data.hexString)
+        if let peripheral = peripheral[uuid], let characteristic = characteristic {
+            DispatchQueue.main.async {
+                peripheral.writeValue(data, for: characteristic, type: .withResponse)
+            }
         }
     }
 }
@@ -223,7 +268,7 @@ extension HubManager: CBPeripheralDelegate {
     
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard let data = characteristic.value else { return }
-        print(">N", data.hexString)
+        print("<-", data.hexString)
         if let notification = Notification(data: data) {
             receive(peripheral: peripheral, notification: notification)
             delegate?.didUpdate(notification: notification)

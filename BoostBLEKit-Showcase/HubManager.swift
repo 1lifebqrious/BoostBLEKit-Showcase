@@ -1,11 +1,3 @@
-//
-//  HubManager.swift
-//  BoostBLEKit-Showcase
-//
-//  Created by Shinichiro Oba on 10/07/2018.
-//  Copyright © 2018 bricklife.com. All rights reserved.
-//
-
 import Foundation
 import BoostBLEKit
 import CoreBluetooth
@@ -41,14 +33,14 @@ class HubManager: NSObject {
     weak var delegate: HubManagerDelegate?
     
     private var centralManager: CBCentralManager!
-    private var peripheral: CBPeripheral?
-    private var characteristic: CBCharacteristic?
+    private var peripherals: [CBPeripheral] = []
+    private var characteristics: [CBPeripheral: CBCharacteristic] = [:]
     
-    var connectedHub: Hub?
-    var sensorValues: [PortId: Data] = [:]
+    var connectedHubs: [CBPeripheral: Hub] = [:]
+    var sensorValues: [CBPeripheral: [PortId: Data]] = [:]
     
     var isConnectedHub: Bool {
-        return peripheral != nil
+        return !peripherals.isEmpty
     }
     
     init(delegate: HubManagerDelegate) {
@@ -69,7 +61,7 @@ class HubManager: NSObject {
     }
     
     private func connect(peripheral: CBPeripheral, advertisementData: [String : Any]) {
-        guard self.peripheral == nil else { return }
+        guard !peripherals.contains(peripheral) else { return }
         
         guard let manufacturerData = advertisementData["kCBAdvDataManufacturerData"] as? Data else { return }
         guard manufacturerData.count == 8 else { return }
@@ -79,84 +71,84 @@ class HubManager: NSObject {
         
         switch hubType {
         case .boost:
-            self.connectedHub = Boost.MoveHub()
+            connectedHubs[peripheral] = Boost.MoveHub()
         case .boostV1:
-            self.connectedHub = Boost.MoveHubV1()
+            connectedHubs[peripheral] = Boost.MoveHubV1()
         case .poweredUp:
-            self.connectedHub = PoweredUp.SmartHub()
+            connectedHubs[peripheral] = PoweredUp.SmartHub()
         case .duploTrain:
-            self.connectedHub = Duplo.TrainBase()
+            connectedHubs[peripheral] = Duplo.TrainBase()
         case .controlPlus:
-            self.connectedHub = ControlPlus.SmartHub()
+            connectedHubs[peripheral] = ControlPlus.SmartHub()
         case .remoteControl:
-            self.connectedHub = PoweredUp.RemoteControl()
+            connectedHubs[peripheral] = PoweredUp.RemoteControl()
         case .mario:
-            self.connectedHub = SuperMario.Mario()
+            connectedHubs[peripheral] = SuperMario.Mario()
         case .luigi:
-            self.connectedHub = SuperMario.Luigi()
+            connectedHubs[peripheral] = SuperMario.Luigi()
         case .peach:
-            self.connectedHub = SuperMario.Peach()
+            connectedHubs[peripheral] = SuperMario.Peach()
         case .spikeEssential:
-            self.connectedHub = Spike.EssentialHub()
+            connectedHubs[peripheral] = Spike.EssentialHub()
         case .none:
             let systemTypeAndDeviceNumber = manufacturerData[3]
             print(String(format: "Unknown Hub (System Type and Device Number: 0x%02x)", systemTypeAndDeviceNumber))
-            self.connectedHub = UnknownHub(systemTypeAndDeviceNumber: systemTypeAndDeviceNumber)
+            connectedHubs[peripheral] = UnknownHub(systemTypeAndDeviceNumber: systemTypeAndDeviceNumber)
         }
         
-        self.peripheral = peripheral
+        peripherals.append(peripheral)
         centralManager.connect(peripheral, options: nil)
     }
     
-    func disconnect() {
-        if let peripheral = peripheral {
-            centralManager.cancelPeripheralConnection(peripheral)
-            self.peripheral = nil
-            self.characteristic = nil
-            self.connectedHub = nil
+    func disconnect(hub: CBPeripheral) {
+        if let index = peripherals.firstIndex(of: hub) {
+            centralManager.cancelPeripheralConnection(hub)
+            peripherals.remove(at: index)
+            characteristics[hub] = nil
+            connectedHubs[hub] = nil
         }
     }
     
-    private func set(characteristic: CBCharacteristic) {
-        if let peripheral = peripheral, characteristic.properties.contains([.write, .notify]) {
-            self.characteristic = characteristic
+    private func set(characteristic: CBCharacteristic, for peripheral: CBPeripheral) {
+        if characteristic.properties.contains([.write, .notify]) {
+            characteristics[peripheral] = characteristic
             peripheral.setNotifyValue(true, for: characteristic)
 
             DispatchQueue.main.async { [weak self] in
-                self?.write(data: HubPropertiesCommand(property: .advertisingName, operation: .enableUpdates).data)
-                self?.write(data: HubPropertiesCommand(property: .firmwareVersion, operation: .requestUpdate).data)
-                self?.write(data: HubPropertiesCommand(property: .batteryVoltage, operation: .enableUpdates).data)
+                self?.write(data: HubPropertiesCommand(property: .advertisingName, operation: .enableUpdates).data, to: peripheral)
+                self?.write(data: HubPropertiesCommand(property: .firmwareVersion, operation: .requestUpdate).data, to: peripheral)
+                self?.write(data: HubPropertiesCommand(property: .batteryVoltage, operation: .enableUpdates).data, to: peripheral)
             }
         }
     }
     
-    private func receive(notification: BoostBLEKit.Notification) {
+    private func receive(notification: BoostBLEKit.Notification, from peripheral: CBPeripheral) {
         print(notification)
         switch notification {
         case .hubProperty:
             break
             
         case .connected(let portId, let ioType):
-            connectedHub?.connectedIOs[portId] = ioType
-            if let command = connectedHub?.subscribeCommand(portId: portId) {
-                write(data: command.data)
+            connectedHubs[peripheral]?.connectedIOs[portId] = ioType
+            if let command = connectedHubs[peripheral]?.subscribeCommand(portId: portId) {
+                write(data: command.data, to: peripheral)
             }
             
         case .disconnected(let portId):
-            connectedHub?.connectedIOs[portId] = nil
-            sensorValues[portId] = nil
-            if let command = connectedHub?.unsubscribeCommand(portId: portId) {
-                write(data: command.data)
+            connectedHubs[peripheral]?.connectedIOs[portId] = nil
+            sensorValues[peripheral]?[portId] = nil
+            if let command = connectedHubs[peripheral]?.unsubscribeCommand(portId: portId) {
+                write(data: command.data, to: peripheral)
             }
             
         case .sensorValue(let portId, let value):
-            sensorValues[portId] = value
+            sensorValues[peripheral]?[portId] = value
         }
     }
     
-    func write(data: Data) {
+    func write(data: Data, to peripheral: CBPeripheral) {
         print("->", data.hexString)
-        if let peripheral = peripheral, let characteristic = characteristic {
+        if let characteristic = characteristics[peripheral] {
             DispatchQueue.main.async {
                 peripheral.writeValue(data, for: characteristic, type: .withResponse)
             }
@@ -224,7 +216,7 @@ extension HubManager: CBPeripheralDelegate {
     
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         if let characteristic = service.characteristics?.first(where: { $0.uuid == MoveHubService.characteristicUuid }) {
-            set(characteristic: characteristic)
+            set(characteristic: characteristic, for: peripheral)
         }
     }
     
@@ -232,7 +224,7 @@ extension HubManager: CBPeripheralDelegate {
         guard let data = characteristic.value else { return }
         print("<-", data.hexString)
         if let notification = Notification(data: data) {
-            receive(notification: notification)
+            receive(notification: notification, from: peripheral)
             delegate?.didUpdate(notification: notification)
         }
     }

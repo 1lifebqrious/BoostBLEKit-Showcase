@@ -1,0 +1,15 @@
+{
+  "originHash" : "3ab3eb6793b9d4aaa47e54c274588e6cf306aa38b7c2ce933ba7b85d384f0c2b",
+  "pins" : [
+    {
+      "identity" : "boostblekit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/bricklife/boostblekit.git",
+      "state" : {
+        "revision" : "04f0cb8284adbf972e19b93def9b23a1d98692be",
+        "version" : "3.5.0"
+      }
+    }
+  ],
+  "version" : 3
+}

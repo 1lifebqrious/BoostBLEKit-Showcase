@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		78FAB7362D3E838C004977FF /* BoostBLEKit in Frameworks */ = {isa = PBXBuildFile; productRef = 78FAB7352D3E838C004977FF /* BoostBLEKit */; };
 		CB64EA7220F4BDDD0077632B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB64EA7120F4BDDD0077632B /* AppDelegate.swift */; };
 		CB64EA7420F4BDDD0077632B /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB64EA7320F4BDDD0077632B /* ViewController.swift */; };
 		CB64EA7720F4BDDD0077632B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CB64EA7520F4BDDD0077632B /* Main.storyboard */; };
@@ -20,7 +21,6 @@
 		CB64EA9620F4BFE70077632B /* Data+HexString.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB83BCFC20ED8AB300AA67E1 /* Data+HexString.swift */; };
 		CB64EA9720F4BFE80077632B /* HubManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB64EA6920F4B3FD0077632B /* HubManager.swift */; };
 		CB64EA9820F4BFE80077632B /* Data+HexString.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB83BCFC20ED8AB300AA67E1 /* Data+HexString.swift */; };
-		CBABA4AF263D9D9A00E55629 /* BoostBLEKit in Frameworks */ = {isa = PBXBuildFile; productRef = CBABA4AE263D9D9A00E55629 /* BoostBLEKit */; };
 		CBABA4B1263D9DA100E55629 /* BoostBLEKit in Frameworks */ = {isa = PBXBuildFile; productRef = CBABA4B0263D9DA100E55629 /* BoostBLEKit */; };
 /* End PBXBuildFile section */
 
@@ -72,7 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CBABA4AF263D9D9A00E55629 /* BoostBLEKit in Frameworks */,
+				78FAB7362D3E838C004977FF /* BoostBLEKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -168,7 +168,7 @@
 			);
 			name = "BoostBLEKit-Showcase-iOS";
 			packageProductDependencies = (
-				CBABA4AE263D9D9A00E55629 /* BoostBLEKit */,
+				78FAB7352D3E838C004977FF /* BoostBLEKit */,
 			);
 			productName = "BoostBLEKit-Showcase-iOS";
 			productReference = CB64EA6F20F4BDDD0077632B /* BoostBLEKit-Showcase-iOS.app */;
@@ -203,7 +203,7 @@
 			attributes = {
 				LastSwiftUpdateCheck = 0930;
 				LastUpgradeCheck = 1250;
-				ORGANIZATIONNAME = bricklife.com;
+				ORGANIZATIONNAME = "";
 				TargetAttributes = {
 					CB64EA6E20F4BDDD0077632B = {
 						CreatedOnToolsVersion = 9.3.1;
@@ -230,6 +230,9 @@
 				Base,
 			);
 			mainGroup = CB83BCD120ED7AA100AA67E1;
+			packageReferences = (
+				78FAB7342D3E8300004977FF /* XCRemoteSwiftPackageReference "boostblekit" */,
+			);
 			productRefGroup = CB83BCDB20ED7AA100AA67E1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -321,14 +324,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = UV6TAX3ANB;
+				DEVELOPMENT_TEAM = 64PWPARRB3;
 				INFOPLIST_FILE = "BoostBLEKit-Showcase-iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bricklife.ios.BoostBLEKit-Showcase";
+				PRODUCT_BUNDLE_IDENTIFIER = com.1lifebqrious.boostBLEApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -341,14 +344,14 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = UV6TAX3ANB;
+				DEVELOPMENT_TEAM = 64PWPARRB3;
 				INFOPLIST_FILE = "BoostBLEKit-Showcase-iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bricklife.ios.BoostBLEKit-Showcase";
+				PRODUCT_BUNDLE_IDENTIFIER = com.1lifebqrious.boostBLEApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -547,9 +550,21 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		78FAB7342D3E8300004977FF /* XCRemoteSwiftPackageReference "boostblekit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/bricklife/boostblekit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		CBABA4AE263D9D9A00E55629 /* BoostBLEKit */ = {
+		78FAB7352D3E838C004977FF /* BoostBLEKit */ = {
 			isa = XCSwiftPackageProductDependency;
+			package = 78FAB7342D3E8300004977FF /* XCRemoteSwiftPackageReference "boostblekit" */;
 			productName = BoostBLEKit;
 		};
 		CBABA4B0263D9DA100E55629 /* BoostBLEKit */ = {

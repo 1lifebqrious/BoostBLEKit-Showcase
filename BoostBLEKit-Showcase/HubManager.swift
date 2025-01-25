@@ -86,8 +86,8 @@ class HubManager: NSObject {
             connectedHubs[peripheral] = SuperMario.Mario()
         case .luigi:
             connectedHubs[peripheral] = SuperMario.Luigi()
-        case .peach:
-            connectedHubs[peripheral] = SuperMario.Peach()
+//        case .peach:
+//            connectedHubs[peripheral] = SuperMario.Peach()
         case .spikeEssential:
             connectedHubs[peripheral] = Spike.EssentialHub()
         case .none:

@@ -40,7 +40,8 @@ class ViewController: UIViewController {
         self.power = power
         powerLabel.text = "\(power)"
         
-        guard let hub = hubManager.connectedHub(for: selectedHub) else { return }
+        guard let selectedHub = selectedHub,
+                  let hub = hubManager.connectedHubs[selectedHub] else { return }
         
         let ports: [BoostBLEKit.Port] = [.A, .B, .C, .D]
         for port in ports {
@@ -51,11 +52,11 @@ class ViewController: UIViewController {
     }
     
     @IBAction func pushConnectButton(_ sender: Any) {
-        if let selectedHub = selectedHub, hubManager.isConnectedHub(selectedHub) {
-            hubManager.disconnect(hub: selectedHub)
-        } else {
+//        if let selectedHub = selectedHub, hubManager.isConnectedHub(selectedHub) {
+//            hubManager.disconnect(hub: selectedHub)
+//        } else {
             hubManager.startScan()
-        }
+//        }
     }
     
     @IBAction func pushPlusButton(_ sender: Any) {
@@ -74,7 +75,7 @@ class ViewController: UIViewController {
     
     @IBAction func pushSendButton(_ sender: Any) {
         if let data = commandTextField.text.flatMap(Data.init(hexString:)) {
-            hubManager.write(data: data, to: selectedHub)
+            hubManager.write(data: data, to: selectedHub!)
         }
     }
 }
@@ -82,9 +83,11 @@ class ViewController: UIViewController {
 extension ViewController: HubManagerDelegate {
     func didConnect(peripheral: CBPeripheral) {
         connectedHubs.append(peripheral)
-        hubSelectionDropdown.reloadAllComponents()
+        print("Hubs: \(connectedHubs.map { $0.name ?? "Unknown" })") // Debug log
+        DispatchQueue.main.async { self.hubSelectionDropdown.reloadAllComponents() }
+//        hubSelectionDropdown.reloadAllComponents()
         if selectedHub == nil {
-            selectedHub = peripheral
+            selectedHub = peripheral // Set newly connected hub as selected
             hubSelectionDropdown.selectRow(connectedHubs.count - 1, inComponent: 0, animated: true)
         }
         connectButton.setTitle("Disconnect", for: .normal)
@@ -113,6 +116,7 @@ extension ViewController: HubManagerDelegate {
         }
         connectButton.setTitle("Connect", for: .normal)
         resetLabels()
+        DispatchQueue.main.async { self.hubSelectionDropdown.reloadAllComponents() }
     }
     
     func didUpdate(notification: BoostBLEKit.Notification) {
@@ -137,18 +141,19 @@ extension ViewController: HubManagerDelegate {
 
 extension ViewController: UIPickerViewDelegate, UIPickerViewDataSource {
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
-        return 1
+        return 1 // Single column for connected hubs
     }
     
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return connectedHubs.count
+        print("Picker View Number of Rows: \(connectedHubs.count)") // Debug log
+        return connectedHubs.count // Number of rows corresponds to connected hubs
     }
     
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        return connectedHubs[row].name ?? "Unknown"
+        return connectedHubs[row].name ?? "Unknown" // Display hub names in rows
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        selectedHub = connectedHubs[row]
+        selectedHub = connectedHubs[row] // Update selectedHub when user picks a row
     }
 }
